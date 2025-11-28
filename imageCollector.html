@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Image URL Collector</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { margin-bottom: 20px; color: #333; }
+        .instructions {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .instructions ol { margin-left: 20px; line-height: 1.8; }
+        .artwork-list {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .artwork-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .artwork-item:last-child { border-bottom: none; }
+        .artwork-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .artwork-meta {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #990000;
+        }
+        button {
+            padding: 8px 16px;
+            background: #990000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:hover { background: #770000; }
+        button.secondary {
+            background: #4CAF50;
+        }
+        button.secondary:hover {
+            background: #45a049;
+        }
+        .export-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .export-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .link {
+            color: #990000;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .status {
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+        .status.has-image {
+            color: #4CAF50;
+        }
+        .status.no-image {
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 MFA Image URL Collector</h1>
+
+    <div class="instructions">
+        <h3>How to use:</h3>
+        <ol>
+            <li>Click on any "Open MFA Page" link below</li>
+            <li>On the MFA website, right-click the artwork image → "Copy Image Address"</li>
+            <li>Come back here and paste it in the input field</li>
+            <li>Repeat for all artworks (or just the ones you want)</li>
+            <li>Click "Export Updated JSON" when done</li>
+        </ol>
+    </div>
+
+    <div class="artwork-list" id="artworkList"></div>
+
+    <div class="export-section">
+        <button class="export-btn" onclick="exportJSON()">📥 Export Updated JSON</button>
+        <div class="success" id="successMsg">JSON copied to clipboard! Paste it into src/artworkData.json</div>
+    </div>
+
+    <script>
+        const artworks = [
+  {
+    "title": "New England Interior",
+    "artist_or_attribution": "Edmund Tarbell",
+    "date": "1906",
+    "accession_number": "1985.66",
+    "mfa_url": "https://collections.mfa.org/objects/34680/new-england-interior",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Edmund_C._Tarbell_-_New_England_Interior_-_Google_Art_Project.jpg"
+  },
+  {
+    "title": "Oil flask (lekythos) with Eros playing double flute (aulos)",
+    "artist_or_attribution": "Attributed to the Providence Painter",
+    "date": "470–460 BCE",
+    "accession_number": "00.341",
+    "mfa_url": "https://collections.mfa.org/objects/153777/oil-flask-lekythos-with-eros-playing-double-flute-aulos"
+  },
+  {
+    "title": "The Granddaughter",
+    "artist_or_attribution": "Francis Davis Millet",
+    "date": "1885",
+    "accession_number": "1981.77",
+    "mfa_url": "https://collections.mfa.org/objects/34418/the-granddaughter",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Francis_Davis_Millet_-_The_Granddaughter_-_1981.77_-_Museum_of_Fine_Arts.jpg"
+  },
+  {
+    "title": "High-handled drinking cup (kantharos) with erotic scenes",
+    "artist_or_attribution": "Nikosthenes Painter; signed by Nikosthenes as potter",
+    "date": "520–510 BCE",
+    "accession_number": "95.61",
+    "mfa_url": "https://collections.mfa.org/objects/153641/highhandled-drinking-cup-kantharos-with-erotic-scenes"
+  },
+  {
+    "title": "Drinking cup (kylix) with a group of youths and older men at a symposium",
+    "artist_or_attribution": "Euaion Painter",
+    "date": "about 450 BCE",
+    "accession_number": "01.8078",
+    "mfa_url": "https://collections.mfa.org/objects/153771/drinking-cup-kylix-with-young-and-older-men-at-a-symposium"
+  },
+  {
+    "title": "Wine pitcher (oinochoe) with revelers",
+    "artist_or_attribution": "Chicago Painter",
+    "date": "about 450 BCE",
+    "accession_number": "13.192",
+    "mfa_url": "https://collections.mfa.org/objects/153737/wine-pitcher-oinochoe-with-revelers"
+  },
+  {
+    "title": "Upper part of a grave stele: Sphinx seated atop a volute capital",
+    "artist_or_attribution": "Greek, Archaic period",
+    "date": "525–520 BCE",
+    "accession_number": "40.576",
+    "mfa_url": "https://collections.mfa.org/objects/150591/upper-part-of-a-grave-stele-sphinx-seated-atop-a-volute-c"
+  },
+  {
+    "title": "Athlete crowning himself in victory",
+    "artist_or_attribution": "Greek, Early Classical period",
+    "date": "about 470 BCE",
+    "accession_number": "96.706",
+    "mfa_url": "https://collections.mfa.org/objects/153505/athlete-crowning-himself-in-victory"
+  },
+  {
+    "title": "Victorious boxer",
+    "artist_or_attribution": "Greek, Early Classical period",
+    "date": "mid-5th century BCE",
+    "accession_number": "01.7475",
+    "mfa_url": "https://collections.mfa.org/objects/153508/victorious-boxer"
+  },
+  {
+    "title": "Deep drinking cup (skyphos) showing an athlete with a wreath",
+    "artist_or_attribution": "Erra Painter",
+    "date": "340–330 BCE",
+    "accession_number": "93.103",
+    "mfa_url": "https://collections.mfa.org/objects/153692/deep-drinking-cup-skyphos-showing-an-athlete-with-a-wreath"
+  },
+  {
+    "title": "Two-handled jar (amphora) with an athletic victor",
+    "artist_or_attribution": "Kleophrades Painter",
+    "date": "about 490 BCE",
+    "accession_number": "10.178",
+    "mfa_url": "https://collections.mfa.org/objects/153702/amphora-with-athletic-victor"
+  },
+  {
+    "title": "Panathenaic prize vase (amphora) with distance runners",
+    "artist_or_attribution": "Euphiletos Painter",
+    "date": "530–520 BCE",
+    "accession_number": "99.520",
+    "mfa_url": "https://collections.mfa.org/objects/153720/panathenaic-prize-vase-amphora-with-distance-runners"
+  },
+  {
+    "title": "Wine cooler (psykter) with pentathletes",
+    "artist_or_attribution": "Phintias",
+    "date": "520–515 BCE",
+    "accession_number": "01.8019",
+    "mfa_url": "https://collections.mfa.org/objects/153729/wine-cooler-psykter-with-pentathletes"
+  },
+  {
+    "title": "Covered wine cup (kylix) depicting athletes and judges",
+    "artist_or_attribution": "Greek, late Archaic period",
+    "date": "about 500 BCE",
+    "accession_number": "95.16",
+    "mfa_url": "https://collections.mfa.org/objects/153715/covered-wine-cup-kylix-depicting-athletes-and-judges"
+  },
+  {
+    "title": "Mixing bowl (dinos) with athletes training",
+    "artist_or_attribution": "Manner of the Dinos Painter",
+    "date": "430–420 BCE",
+    "accession_number": "96.720",
+    "mfa_url": "https://collections.mfa.org/objects/153725/dinos-mixing-bowl-with-athletes-training"
+  },
+  {
+    "title": "Miniature chariot wheel",
+    "artist_or_attribution": "Greek, Archaic period",
+    "date": "525–500 BCE",
+    "accession_number": "35.61",
+    "mfa_url": "https://collections.mfa.org/objects/150379/miniature-chariot-wheel"
+  },
+  {
+    "title": "Wine cup (kylix) with palaestra scenes",
+    "artist_or_attribution": "Penthesilea Painter",
+    "date": "about 460 BCE",
+    "accession_number": "28.48",
+    "mfa_url": "https://collections.mfa.org/objects/153768/wine-cup-kylix-with-palaestra-scenes"
+  },
+  {
+    "title": "Stooping athlete",
+    "artist_or_attribution": "Greek, early Classical period",
+    "date": "470–460 BCE",
+    "accession_number": "96.710",
+    "mfa_url": "https://collections.mfa.org/objects/153506/stooping-athlete"
+  },
+  {
+    "title": "Discus thrower (diskobolos)",
+    "artist_or_attribution": "Greek, Early Classical period",
+    "date": "about 480 BC",
+    "accession_number": "50.22",
+    "mfa_url": "https://collections.mfa.org/objects/153514/discus-thrower-diskobolos"
+  },
+  {
+    "title": "Athlete lifting weight",
+    "artist_or_attribution": "Greek, Classical period",
+    "date": "about 420 BC",
+    "accession_number": "50.21",
+    "mfa_url": "https://collections.mfa.org/objects/153513/athlete-lifting-weight"
+  },
+  {
+    "title": "Wine cup (kylix) depicting a boxer wrapping his fist with a leather strap",
+    "artist_or_attribution": "Attributed to the Amasis Painter",
+    "date": "about 500 BC",
+    "accession_number": "01.8030",
+    "mfa_url": "https://collections.mfa.org/objects/153773/wine-cup-kylix-depicting-a-boxer-wrapping-his-fist"
+  },
+  {
+    "title": "Wine cup (kylix) with pentathletes",
+    "artist_or_attribution": "Greek, Early Classical period",
+    "date": "about 470–460 BC",
+    "accession_number": "01.8039",
+    "mfa_url": "https://collections.mfa.org/objects/153774/wine-cup-kylix-with-pentathletes"
+  },
+  {
+    "title": "Jumping weight (halter)",
+    "artist_or_attribution": "Greek, Archaic or Classical period",
+    "date": "6th–4th century BC",
+    "accession_number": "10.176",
+    "mfa_url": "https://collections.mfa.org/objects/153512/jumping-weight-halter"
+  },
+  {
+    "title": "Wine cup (kylix) depicting athletic combats",
+    "artist_or_attribution": "Onesimos",
+    "date": "about 490–480 BC",
+    "accession_number": "1972.44",
+    "mfa_url": "https://collections.mfa.org/objects/153767/wine-cup-kylix-depicting-athletic-combats"
+  },
+  {
+    "title": "Head of a youthful god (Ares?)",
+    "artist_or_attribution": "Roman, Imperial period",
+    "date": "mid–2nd century A.D.",
+    "accession_number": "03.746",
+    "mfa_url": "https://collections.mfa.org/objects/152632/head-of-a-youthful-god-ares"
+  },
+  {
+    "title": "Lower body of a youth",
+    "artist_or_attribution": "Roman, Imperial period",
+    "date": "2nd–3rd century A.D.",
+    "accession_number": "2003.47",
+    "mfa_url": "https://collections.mfa.org/objects/150602/lower-body-of-a-youth"
+  },
+  {
+    "title": "High-handled cup (kantharos) with Poseidon battling a Giant",
+    "artist_or_attribution": "Amphitrite Painter; signed by Hieron, son of Medon, as potter",
+    "date": "about 470–460 BCE",
+    "accession_number": "98.932",
+    "mfa_url": "https://collections.mfa.org/objects/153643/highhandled-cup-kantharos-with-poseidon-battling-a-giant"
+  },
+  {
+    "title": "Bowl with bats, rocks, and waves",
+    "artist_or_attribution": "Qing dynasty, Yongzheng period; Jingdezhen ware",
+    "date": "1723–35",
+    "accession_number": "1987.568",
+    "mfa_url": "https://collections.mfa.org/objects/41437/bowl-with-bats-rocks-and-waves"
+  }
+];
+
+        function renderArtworks() {
+            const container = document.getElementById('artworkList');
+            container.innerHTML = artworks.map((artwork, index) => `
+                <div class="artwork-item">
+                    <div class="artwork-title">${artwork.title}</div>
+                    <div class="artwork-meta">
+                        ${artwork.artist_or_attribution} • ${artwork.date} • ${artwork.accession_number}
+                    </div>
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="img-${index}"
+                            placeholder="Paste image URL here..."
+                            value="${artwork.imageUrl || ''}"
+                            onchange="updateImageUrl(${index}, this.value)"
+                        />
+                        <a href="${artwork.mfa_url}" target="_blank" class="link">
+                            <button class="secondary">Open MFA Page</button>
+                        </a>
+                    </div>
+                    <div class="status ${artwork.imageUrl ? 'has-image' : 'no-image'}">
+                        ${artwork.imageUrl ? '✓ Has image' : '○ No image yet'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateImageUrl(index, url) {
+            if (url.trim()) {
+                artworks[index].imageUrl = url.trim();
+            } else {
+                delete artworks[index].imageUrl;
+            }
+            renderArtworks();
+        }
+
+        function exportJSON() {
+            const json = JSON.stringify(artworks, null, 2);
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(json).then(() => {
+                const msg = document.getElementById('successMsg');
+                msg.style.display = 'block';
+                setTimeout(() => {
+                    msg.style.display = 'none';
+                }, 3000);
+            });
+        }
+
+        // Initial render
+        renderArtworks();
+    </script>
+</body>
+</html>
